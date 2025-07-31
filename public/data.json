@@ -1,0 +1,26 @@
+[
+  {
+    "Nama": "Andi",
+    "Usia": 25,
+    "Kota": "Jakarta",
+    "Aktif": true
+  },
+  {
+    "Nama": "Budi",
+    "Usia": 30,
+    "Kota": "Bandung",
+    "Aktif": false
+  },
+  {
+    "Nama": "Citra",
+    "Usia": 22,
+    "Kota": "Surabaya",
+    "Aktif": true
+  },
+  {
+    "Nama": "Dewi",
+    "Usia": 27,
+    "Kota": "Yogyakarta",
+    "Aktif": false
+  }
+]
