@@ -1,14 +1,10 @@
-'use client'
-
 import Link from 'next/link'
 import Image from 'next/image'
-import Card from '@/components/Card'
-
+import Card from '@/components/Card' // pastikan ini juga SSR, bukan client component
 
 const HomePage = () => {
   return (
     <>
-
       <div className="bg-gray-100 flex justify-between items-center px-10 py-10 flex-wrap">
         {/* Kiri */}
         <section className="text-black max-w-xl font-sans mb-10">
@@ -45,7 +41,7 @@ const HomePage = () => {
           />
         </section>
       </div>
-      <Card/>
+      <Card />
     </>
   )
 }

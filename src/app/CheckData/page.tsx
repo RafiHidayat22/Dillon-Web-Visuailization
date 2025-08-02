@@ -1,6 +1,7 @@
-'use client'
+'use client';
 
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion'; // <-- Import framer-motion
 import StepProgres from '@/components/StepProgres';
 import NextBack from '@/components/NextBack';
 
@@ -33,13 +34,17 @@ interface DescribeTableProps {
 
 const DescribeTable = ({ data }: DescribeTableProps) => {
   if (!data.length) return null;
-
   const headers = Object.keys(data[0]);
 
   return (
-    <table className="w-full border-collapse mt-2 font-sans shadow-md">
+    <motion.table
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      className="w-full border-collapse mt-2 font-sans shadow-md"
+    >
       <thead>
-        <tr className="bg-blue-900 text-white text-left">
+        <tr className="bg-blue-900 text-white text-center">
           <th className="px-4 py-3 border">No</th>
           {headers.map((head, index) => (
             <th key={index} className="px-4 py-3 border">{head}</th>
@@ -67,7 +72,7 @@ const DescribeTable = ({ data }: DescribeTableProps) => {
           </tr>
         ))}
       </tbody>
-    </table>
+    </motion.table>
   );
 };
 
@@ -90,8 +95,7 @@ const CheckData = () => {
     if (!data.length) return [];
     const keys = Object.keys(data[0]);
     const transposedArray: DataRow[] = [];
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    keys.forEach((key, i) => {
+    keys.forEach((key) => {
       const newRow: DataRow = { Kolom: key };
       data.forEach((row, j) => {
         newRow[`Baris ${j + 1}`] = row[key];
@@ -118,7 +122,6 @@ const CheckData = () => {
   };
 
   const handleDeleteColumnConfirmed = () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const updated = tableData.map(({ [columnToDelete]: _, ...rest }) => rest);
     setTableData(updated);
     setIsConfirmOpen(false);
@@ -127,36 +130,62 @@ const CheckData = () => {
 
   return (
     <>
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg text-center w-[400px]">
-            <h3 className="text-lg font-semibold">Tambah Kolom Baru</h3>
-            <input
-              type="text"
-              placeholder="Masukkan nama kolom"
-              className="w-full p-2 mt-4 border border-gray-300 rounded-md"
-              value={newColumnName}
-              onChange={(e) => setNewColumnName(e.target.value)}
-            />
-            <div className="flex gap-3 mt-4">
-              <button onClick={handleAddColumn} className="flex-1 py-2 bg-blue-600 text-white rounded-md">Tambah</button>
-              <button onClick={() => setIsModalOpen(false)} className="flex-1 py-2 bg-gray-400 text-white rounded-md">Batal</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {isModalOpen && (
+          <motion.div
+            className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="bg-white p-6 rounded-lg shadow-lg text-center w-[400px]"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <h3 className="text-lg font-semibold">Tambah Kolom Baru</h3>
+              <input
+                type="text"
+                placeholder="Masukkan nama kolom"
+                className="w-full p-2 mt-4 border border-gray-300 rounded-md"
+                value={newColumnName}
+                onChange={(e) => setNewColumnName(e.target.value)}
+              />
+              <div className="flex gap-3 mt-4">
+                <button onClick={handleAddColumn} className="flex-1 py-2 bg-blue-600 text-white rounded-md">Tambah</button>
+                <button onClick={() => setIsModalOpen(false)} className="flex-1 py-2 bg-gray-400 text-white rounded-md">Batal</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
 
-      {isConfirmOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg text-center w-[400px]">
-            <h3 className="text-lg font-semibold">Yakin ingin menghapus kolom terakhir <span className="text-red-500">{columnToDelete}</span>?</h3>
-            <div className="flex gap-3 mt-4">
-              <button onClick={handleDeleteColumnConfirmed} className="flex-1 py-2 bg-blue-600 text-white rounded-md">Ya</button>
-              <button onClick={() => setIsConfirmOpen(false)} className="flex-1 py-2 bg-gray-400 text-white rounded-md">Tidak</button>
-            </div>
-          </div>
-        </div>
-      )}
+        {isConfirmOpen && (
+          <motion.div
+            className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="bg-white p-6 rounded-lg shadow-lg text-center w-[400px]"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <h3 className="text-lg font-semibold">
+                Yakin ingin menghapus kolom terakhir <span className="text-red-500">{columnToDelete}</span>?
+              </h3>
+              <div className="flex gap-3 mt-4">
+                <button onClick={handleDeleteColumnConfirmed} className="flex-1 py-2 bg-blue-600 text-white rounded-md">Ya</button>
+                <button onClick={() => setIsConfirmOpen(false)} className="flex-1 py-2 bg-gray-400 text-white rounded-md">Tidak</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="flex flex-col items-center text-center mt-5 font-sans">
         <h1 className="text-2xl font-bold">Langkah 2 dari 4: Cek Data</h1>
@@ -189,13 +218,13 @@ const CheckData = () => {
 
           <div className="flex justify-end gap-4 mt-3">
             <button onClick={() => setTransposed(prev => !prev)} className="px-4 py-2 border rounded-full hover:bg-black/10">Tukar Kolom dan Baris</button>
-            <button onClick={() => setIsModalOpen(true)} className="px-4 py-2 border rounded-full hover:bg-black/10" >Tambah Kolom</button>
-            <button onClick={confirmDeleteLastColumn} className="px-4 py-2 border rounded-full hover:bg-black/10">Hapus Kolom</button>
+            <button onClick={() => setIsModalOpen(true)} disabled={transposed} className={`px-4 py-2 border rounded-full hover:bg-black/10 ${transposed ? 'opacity-50 cursor-not-allowed' : ''}`} >Tambah Kolom</button>
+            <button onClick={confirmDeleteLastColumn} disabled={transposed} className={`px-4 py-2 border rounded-full hover:bg-black/10 ${transposed ? 'opacity-50 cursor-not-allowed' : ''}`} >Hapus Kolom</button>
           </div>
         </div>
       </div>
 
-      <NextBack nextLink="/visualize" backLink="/UpData" />
+      <NextBack nextLink="/Visualize" backLink="/UpData" />
     </>
   );
 };

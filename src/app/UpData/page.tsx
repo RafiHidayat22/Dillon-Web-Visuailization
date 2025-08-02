@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import Image from 'next/image'
+import { motion } from 'framer-motion'
 import StepProgres from '@/components/StepProgres'
 import NextBack from '@/components/NextBack'
 
@@ -14,7 +15,6 @@ const UpData = () => {
     if (file) {
       if (file.name.endsWith('.csv')) {
         setSelectedFile(file.name)
-        console.log('File dipilih:', file.name)
       } else {
         setSelectedFile('')
         alert('Hanya file CSV yang diperbolehkan!')
@@ -28,39 +28,46 @@ const UpData = () => {
 
   return (
     <>
-      {/* Container judul */}
-      <div className="flex flex-col items-center text-center mt-5 font-sans">
-        <h1 className="text-2xl font-bold mb-5 ">Langkah 1 dari 4: Unggah Data</h1>
-      </div>
+      <motion.div
+        className="flex flex-col items-center text-center mt-5 font-sans"
+        initial={{ opacity: 0, y: -30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <h1 className="text-2xl font-bold mb-5">Langkah 1 dari 4: Unggah Data</h1>
+      </motion.div>
 
-      {/* Step Progress */}
       <div className="mx-10">
         <StepProgres currentStep={1} />
       </div>
 
-
-      {/* Konten utama */}
-      <div className="flex flex-wrap justify-between items-center gap-5 max-w-[1200px] mx-auto my-10 px-4">
-        
-        {/* Kiri */}
+      <motion.div
+        className="flex flex-wrap justify-between items-center gap-5 max-w-[1200px] mx-auto my-10 px-4"
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
+      >
+        {/* Left */}
         <div className="flex-1 min-w-[250px]">
-          <h1 className="text-2xl font-bold font-sans mb-2">Unggah Data</h1>
-          <h4 className="text-base font-normal font-sans mt-2 leading-snug">
-            Silakan unggah file CSV dari komputer Anda. Pastikan file sudah termasuk baris atau kolom judul untuk memudahkan pemrosesan data.
+          <h1 className="text-2xl font-bold mb-2">Unggah Data</h1>
+          <h4 className="text-base mt-2 leading-snug">
+            Silakan unggah file CSV dari komputer Anda. Pastikan file sudah termasuk baris atau kolom judul.
           </h4>
 
-          <h4 className="text-base font-normal font-sans mt-4 flex items-center gap-2">
+          <h4 className="text-base mt-4 flex items-center gap-2">
             <Image src="/tips.png" alt="Tips Icon" width={15} height={15} />
-            <strong>Tips:</strong> Pastikan file Anda berekstensi .csv dan tidak memiliki baris kosong di awal.
+            <strong>Tips:</strong> Pastikan file berekstensi .csv
           </h4>
 
-          <button
+          <motion.button
             onClick={triggerFileSelect}
-            className="mt-5 w-[120px] px-4 py-2 border border-black rounded-full bg-white flex justify-between items-center font-regular hover:bg-black/10 transition"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="mt-5 w-[120px] px-4 py-2 border border-black rounded-full bg-white flex justify-between items-center hover:bg-black/10 transition"
           >
             Pilih File
             <Image src="/fileIcon.png" alt="File Icon" width={15} height={15} />
-          </button>
+          </motion.button>
 
           <input
             type="file"
@@ -71,22 +78,37 @@ const UpData = () => {
           />
 
           {selectedFile && (
-            <p className="mt-5 font-sans">
+            <motion.p
+              className="mt-5"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5 }}
+            >
               <strong>File terpilih:</strong> {selectedFile}
-            </p>
+            </motion.p>
           )}
         </div>
 
-        {/* Tengah */}
-        <div className="flex-1 min-w-[250px] flex justify-center items-center">
+        {/* Center */}
+        <motion.div
+          className="flex-1 min-w-[250px] flex justify-center items-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.7, delay: 0.2 }}
+        >
           <Image src="/csvIcon.png" alt="Icon CSV" width={150} height={150} />
-        </div>
+        </motion.div>
 
-        {/* Kanan */}
-        <div className="flex-1 min-w-[250px] flex justify-center items-center">
+        {/* Right */}
+        <motion.div
+          className="flex-1 min-w-[250px] flex justify-center items-center"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.7, delay: 0.4 }}
+        >
           <Image src="/csvImage.png" alt="Ilustrasi CSV" width={300} height={200} />
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       <NextBack nextLink="/CheckData" backLink="/" />
     </>

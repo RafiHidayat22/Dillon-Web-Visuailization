@@ -1,28 +1,56 @@
-'use client'
+'use client';
+
 import React from 'react';
+import { Steps } from 'antd';
+
+const { Step } = Steps;
 
 interface StepProgresProps {
   currentStep: number;
 }
 
 const StepProgres: React.FC<StepProgresProps> = ({ currentStep }) => {
-  const steps = [1, 2, 3, 4];
+  const steps = ['Step 1', 'Step 2', 'Step 3', 'Step 4'];
 
   return (
-    <div className="flex items-center justify-center my-10 font-sans">
-      {steps.map((step, index) => (
-        <React.Fragment key={step}>
-          <div
-            className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg
-              ${currentStep === step ? 'bg-[#26d0ce]' : 'bg-[#0a58ca]'}`}
-          >
-            {step}
-          </div>
-          {index < steps.length - 1 && (
-            <div className="flex-1 h-2 bg-[#0a58ca] mx-2 rounded-full" />
-          )}
-        </React.Fragment>
-      ))}
+    <div className="my-10 flex justify-center font-sans">
+      <Steps current={currentStep - 1}>
+        {steps.map((step, index) => {
+          let status: 'wait' | 'process' | 'finish' = 'wait';
+
+          if (index < currentStep - 1) {
+            status = 'finish'; 
+          } else if (index === currentStep - 1) {
+            status = 'process';
+          }
+
+          // icon untuk step aktif: teks
+          // icon untuk step selesai: default (centang)
+          // icon untuk step selanjutnya setelah aktif: kosong 
+          let icon;
+          if (status === 'process') {
+            icon = <div className="font-semibold text-white">{step}</div>;
+          } else if (status === 'finish') {
+            icon = undefined; 
+          } else {
+            // status wait, (index > currentStep -1)
+            if (index > currentStep - 1) {
+              icon = <div style={{ width: 24, height: 24 }}></div>; 
+            } else {
+              icon = undefined;
+            }
+          }
+
+          return (
+            <Step
+              key={step}
+              title={step}
+              status={status}
+              icon={icon}
+            />
+          );
+        })}
+      </Steps>
     </div>
   );
 };
