@@ -1,9 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion'; // <-- Import framer-motion
+import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion'; 
 import StepProgres from '@/components/StepProgres';
 import NextBack from '@/components/NextBack';
+import { useDataContext } from '../context/DataContext';
+import { useRouter } from "next/navigation";
+import DescribeTable from '@/components/DescribeTable';
+
+
 
 const sampleData = [
   { nama: 'Andi', umur: 21, tanggalLahir: '2003-02-21' },
@@ -17,64 +22,11 @@ const sampleData = [
   { nama: 'Andi', umur: 21, tanggalLahir: '2003-02-21' },
 ];
 
-const getCellType = (value: string | number | null | undefined): string => {
-  if (value === '' || value === null || value === undefined || value === '–') return 'missing';
-  if (!isNaN(Number(value))) return 'number';
-  if (/\d{4}-\d{2}-\d{2}/.test(String(value))) return 'date';
-  return 'text';
-};
 
 interface DataRow {
   [key: string]: string | number | null | undefined;
 }
 
-interface DescribeTableProps {
-  data: DataRow[];
-}
-
-const DescribeTable = ({ data }: DescribeTableProps) => {
-  if (!data.length) return null;
-  const headers = Object.keys(data[0]);
-
-  return (
-    <motion.table
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-      className="w-full border-collapse mt-2 font-sans shadow-md"
-    >
-      <thead>
-        <tr className="bg-blue-900 text-white text-center">
-          <th className="px-4 py-3 border">No</th>
-          {headers.map((head, index) => (
-            <th key={index} className="px-4 py-3 border">{head}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {data.map((row: DataRow, rowIdx: number) => (
-          <tr key={rowIdx} className="even:bg-gray-100 hover:bg-gray-200">
-            <td className="px-4 py-2 border">{rowIdx + 1}</td>
-            {headers.map((key, colIdx) => {
-              const val = row[key] === '' ? '–' : row[key];
-              const type = getCellType(val);
-              const colorClass = {
-                number: 'text-blue-600 font-semibold',
-                date: 'text-green-600 font-semibold',
-                text: 'text-black',
-                missing: 'text-red-600 font-bold italic',
-              }[type];
-
-              return (
-                <td key={colIdx} className={`px-4 py-2 border ${colorClass}`}>{val}</td>
-              );
-            })}
-          </tr>
-        ))}
-      </tbody>
-    </motion.table>
-  );
-};
 
 const CheckData = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -85,6 +37,17 @@ const CheckData = () => {
   const [transposed, setTransposed] = useState(false);
   const [tableData, setTableData] = useState<DataRow[]>(sampleData);
 
+const { setData } = useDataContext();
+const router = useRouter();
+
+const handleNext = () => {
+  setData(tableData); // Simpan data ke context
+  router.push("/Visualize"); // Navigasi ke halaman Visualize
+};
+
+useEffect(() => {
+  setData(sampleData);
+})
   const filteredData = tableData.filter(row =>
     Object.values(row).some(value =>
       String(value).toLowerCase().includes(search.toLowerCase())
@@ -122,6 +85,7 @@ const CheckData = () => {
   };
 
   const handleDeleteColumnConfirmed = () => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const updated = tableData.map(({ [columnToDelete]: _, ...rest }) => rest);
     setTableData(updated);
     setIsConfirmOpen(false);
@@ -187,15 +151,20 @@ const CheckData = () => {
         )}
       </AnimatePresence>
 
-      <div className="flex flex-col items-center text-center mt-5 font-sans">
-        <h1 className="text-2xl font-bold">Langkah 2 dari 4: Cek Data</h1>
-      </div>
+      <motion.div
+        className="flex flex-col items-center text-center mt-5 font-sans"
+        initial={{ opacity: 0, y: -30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+      >
+        <h1 className="text-2xl font-bold mb-5">Langkah 2 dari 4: Cek Data</h1>
+      </motion.div>
 
       <div className="mx-10">
         <StepProgres currentStep={2} />
       </div>
 
-      <div className="flex flex-wrap justify-between items-start gap-10 max-w-6xl mx-auto mt-10">
+      <div className="flex flex-wrap overflow-x-auto justify-between items-start gap-10 max-w-6xl mx-auto mt-10">
         <div className="flex-1 min-w-[300px] ml-10">
           <h1 className="text-2xl mb-2 font-bold font-sans">Cek Data</h1>
           <h4 className="text-base mt-2 font-normal text-justify font-sans w-[400px]">
@@ -214,7 +183,9 @@ const CheckData = () => {
             />
           </div>
 
-          <DescribeTable data={transposed ? handleTransposed(filteredData) : filteredData} />
+          <div className="min-w-max">
+            <DescribeTable data={transposed ? handleTransposed(filteredData) : filteredData} />
+          </div>
 
           <div className="flex justify-end gap-4 mt-3">
             <button onClick={() => setTransposed(prev => !prev)} className="px-4 py-2 border rounded-full hover:bg-black/10">Tukar Kolom dan Baris</button>
@@ -224,7 +195,7 @@ const CheckData = () => {
         </div>
       </div>
 
-      <NextBack nextLink="/Visualize" backLink="/UpData" />
+      <NextBack nextLink="#" backLink="/UpData" onNext={handleNext} />
     </>
   );
 };

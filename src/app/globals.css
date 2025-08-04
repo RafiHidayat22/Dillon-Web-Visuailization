@@ -1,3 +1,20 @@
 @import "tailwindcss";
 
+.excel-table .ant-table-thead > tr > th,
+.excel-table .ant-table-tbody > tr > td {
+  border: 1px solid #ccc !important;
+  padding: 8px !important;
+  text-align: center;
+}
+
+.excel-table .ant-table {
+  border-collapse: collapse;
+}
+
+.excel-table .ant-table-thead > tr > th {
+  background-color: #f0f2f5;
+  font-weight: bold;
+}
+
+
 
