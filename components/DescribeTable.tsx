@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { Table } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { motion } from 'framer-motion';
@@ -10,6 +11,7 @@ interface DataRow {
 
 interface DescribeTableProps {
   data: DataRow[];
+  onCellChange?: (rowIndex: number, key: string, value: string) => void;
 }
 
 const getCellType = (value: string | number | null | undefined): string => {
@@ -19,7 +21,7 @@ const getCellType = (value: string | number | null | undefined): string => {
   return 'text';
 };
 
-// Fungsi ubah index ke huruf 
+// Ubah index ke huruf seperti Excel
 const columnIndexToLetter = (index: number): string => {
   let letter = '';
   while (index >= 0) {
@@ -29,12 +31,11 @@ const columnIndexToLetter = (index: number): string => {
   return letter;
 };
 
-const DescribeTable = ({ data }: DescribeTableProps) => {
+const DescribeTable: React.FC<DescribeTableProps> = ({ data, onCellChange }) => {
   if (!data || data.length === 0) return null;
 
   const headers = Object.keys(data[0]);
 
-  // Buat 2 baris header: baris pertama huruf
   const columns: ColumnsType<DataRow> = [
     {
       title: (
@@ -57,7 +58,7 @@ const DescribeTable = ({ data }: DescribeTableProps) => {
       ),
       dataIndex: key,
       key,
-      render: (value: string | number | null | undefined) => {
+      render: (value: string | number | null | undefined, record: DataRow, rowIndex: number) => {
         const val = value === '' ? '–' : value;
         const type = getCellType(val);
         const colorMap: Record<string, string> = {
@@ -68,15 +69,27 @@ const DescribeTable = ({ data }: DescribeTableProps) => {
         };
 
         return (
-          <span
+          <input
+            type="text"
+            value={value ?? ''}
+            onChange={(e) => {
+              if (
+                typeof rowIndex === 'number' &&
+                typeof key === 'string' &&
+                typeof e.target.value === 'string'
+              ) {
+                onCellChange?.(rowIndex, key, e.target.value);
+              }
+            }}
             style={{
+              width: '100%',
+              border: 'none',
+              background: 'transparent',
               color: colorMap[type],
               fontWeight: type === 'missing' ? 'bold' : 'normal',
               fontStyle: type === 'missing' ? 'italic' : 'normal',
             }}
-          >
-            {val}
-          </span>
+          />
         );
       },
     })),
@@ -88,15 +101,15 @@ const DescribeTable = ({ data }: DescribeTableProps) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
     >
-    <Table
-    dataSource={data}
-    columns={columns}
-    bordered
-    className="excel-table"
-    rowKey={(_, index) => index?.toString() ?? ''}
-    scroll={{ x: 'max-content' }}
-    pagination={false}
-    />
+      <Table
+        dataSource={data}
+        columns={columns}
+        bordered
+        className="excel-table"
+        rowKey={(_, index) => index?.toString() ?? ''}
+        scroll={{ x: 'max-content' }}
+        pagination={false}
+      />
     </motion.div>
   );
 };

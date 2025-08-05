@@ -37,7 +37,7 @@ const UpData = () => {
         <h1 className="text-2xl font-bold mb-5">Langkah 1 dari 4: Unggah Data</h1>
       </motion.div>
 
-      <div className="mx-10 overflow-x-auto w-full">
+      <div className="mx-10 overflow-x-auto">
         <StepProgres currentStep={1} />
       </div>
 

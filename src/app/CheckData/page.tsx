@@ -12,14 +12,13 @@ import DescribeTable from '@/components/DescribeTable';
 
 const sampleData = [
   { nama: 'Andi', umur: 21, tanggalLahir: '2003-02-21' },
-  { nama: '', umur: '', tanggalLahir: '' },
-  { nama: 'Budi', umur: 19, tanggalLahir: '2005-06-11' },
-  { nama: 'Andi', umur: 21, tanggalLahir: '2003-02-21' },
-  { nama: 'Andi', umur: 21, tanggalLahir: '2003-02-21' },
-  { nama: 'Andi', umur: 21, tanggalLahir: '2003-02-21' },
-  { nama: 'Andi', umur: 21, tanggalLahir: '2003-02-21' },
-  { nama: 'Andi', umur: 21, tanggalLahir: '2003-02-21' },
-  { nama: 'Andi', umur: 21, tanggalLahir: '2003-02-21' },
+  { nama: 'Budi', umur: 17, tanggalLahir: '2005-06-11' },
+  { nama: 'Andi', umur: 20, tanggalLahir: '2003-02-21' },
+  { nama: 'Andi', umur: 25, tanggalLahir: '2003-02-21' },
+  { nama: 'Andi', umur: 30, tanggalLahir: '2003-02-21' },
+  { nama: 'Andi', umur: 41, tanggalLahir: '2003-02-21' },
+  { nama: 'Andi', umur: 19, tanggalLahir: '2003-02-21' },
+  { nama: 'Andi', umur: 23, tanggalLahir: '2003-02-21' },
 ];
 
 
@@ -54,6 +53,7 @@ useEffect(() => {
     )
   );
 
+  
   const handleTransposed = (data: DataRow[]): DataRow[] => {
     if (!data.length) return [];
     const keys = Object.keys(data[0]);
@@ -97,7 +97,7 @@ useEffect(() => {
       <AnimatePresence>
         {isModalOpen && (
           <motion.div
-            className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"
+            className="fixed inset-0  flex items-center justify-center z-50"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -127,7 +127,7 @@ useEffect(() => {
 
         {isConfirmOpen && (
           <motion.div
-            className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50"
+            className="fixed inset-0  flex items-center justify-center z-50"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -184,7 +184,14 @@ useEffect(() => {
           </div>
 
           <div className="min-w-max">
-            <DescribeTable data={transposed ? handleTransposed(filteredData) : filteredData} />
+            <DescribeTable
+              data={transposed ? handleTransposed(filteredData) : filteredData}
+              onCellChange={(rowIndex, key, value) => {
+                const updated = [...tableData];
+                updated[rowIndex][key] = value;
+                setTableData(updated);
+              }}
+            />
           </div>
 
           <div className="flex justify-end gap-4 mt-3">
