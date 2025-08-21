@@ -8,24 +8,9 @@ import { useDataContext } from '../context/DataContext';
 import { useRouter } from "next/navigation";
 import DescribeTable from '@/components/DescribeTable';
 
-
-
-const sampleData = [
-  { nama: 'Andi', umur: 21, tanggalLahir: '2003-02-21' },
-  { nama: 'Budi', umur: 17, tanggalLahir: '2005-06-11' },
-  { nama: 'Andi', umur: 20, tanggalLahir: '2003-02-21' },
-  { nama: 'Andi', umur: 25, tanggalLahir: '2003-02-21' },
-  { nama: 'Andi', umur: 30, tanggalLahir: '2003-02-21' },
-  { nama: 'Andi', umur: 41, tanggalLahir: '2003-02-21' },
-  { nama: 'Andi', umur: 19, tanggalLahir: '2003-02-21' },
-  { nama: 'Andi', umur: 23, tanggalLahir: '2003-02-21' },
-];
-
-
 interface DataRow {
   [key: string]: string | number | null | undefined;
 }
-
 
 const CheckData = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -34,26 +19,75 @@ const CheckData = () => {
   const [columnToDelete, setColumnToDelete] = useState('');
   const [search, setSearch] = useState('');
   const [transposed, setTransposed] = useState(false);
-  const [tableData, setTableData] = useState<DataRow[]>(sampleData);
+  const [tableData, setTableData] = useState<DataRow[]>([]);
+  const [user, setUser] = useState<{ name: string } | null>(null);
+  const [loading, setLoading] = useState(true);
 
-const { setData } = useDataContext();
-const router = useRouter();
+  const [uploadedFiles, setUploadedFiles] = useState<{ id: string; original_name: string }[]>([]);
+  const [selectedFileId, setSelectedFileId] = useState<string>("");
 
-const handleNext = () => {
-  setData(tableData); // Simpan data ke context
-  router.push("/Visualize"); // Navigasi ke halaman Visualize
-};
+  const { setData } = useDataContext();
+  const router = useRouter();
 
-useEffect(() => {
-  setData(sampleData);
-})
   const filteredData = tableData.filter(row =>
     Object.values(row).some(value =>
       String(value).toLowerCase().includes(search.toLowerCase())
     )
   );
 
-  
+  // === User login & ambil daftar file CSV ===
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const name = localStorage.getItem('name');
+
+    if (!token || !name) {
+      router.push('/auth/login');
+      return;
+    }
+
+    setUser({ name });
+    setLoading(true);
+
+    // Ambil daftar file CSV
+    fetch('/api/checkData/getUploadedFiles', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(res => {
+        setUploadedFiles(res.files || []);
+        if (res.files?.length) setSelectedFileId(res.files[0].id);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, [router]);
+
+  // === Fetch data CSV saat file dipilih ===
+  useEffect(() => {
+  console.log("Selected file id:", selectedFileId);
+  if (!selectedFileId) return;
+
+  const token = localStorage.getItem('token');
+  setLoading(true);
+
+  fetch(`/api/checkData/getUploadedDataById?id=${selectedFileId}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+    .then(res => res.json())
+    .then(res => {
+      console.log("Data fetched:", res.data);
+      setTableData(res.data || []);
+      setLoading(false);
+    })
+    .catch(err => {
+      console.error(err);
+      setLoading(false);
+    });
+}, [selectedFileId]);
+
+  // === Transpose table ===
   const handleTransposed = (data: DataRow[]): DataRow[] => {
     if (!data.length) return [];
     const keys = Object.keys(data[0]);
@@ -68,6 +102,7 @@ useEffect(() => {
     return transposedArray;
   };
 
+  // === Tambah kolom baru ===
   const handleAddColumn = () => {
     if (!newColumnName.trim()) return;
     const updated = tableData.map(row => ({ ...row, [newColumnName]: '' }));
@@ -76,28 +111,32 @@ useEffect(() => {
     setIsModalOpen(false);
   };
 
+  // === Hapus kolom terakhir ===
   const confirmDeleteLastColumn = () => {
+    if (!tableData.length) return;
     const keys = Object.keys(tableData[0]);
     const lastKey = keys[keys.length - 1];
-    if (!lastKey) return;
     setColumnToDelete(lastKey);
     setIsConfirmOpen(true);
   };
 
   const handleDeleteColumnConfirmed = () => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const updated = tableData.map(({ [columnToDelete]: _, ...rest }) => rest);
     setTableData(updated);
     setIsConfirmOpen(false);
     setColumnToDelete('');
   };
 
+  if (!user) return null;
+  if (loading) return <p className="text-center mt-10">Loading data CSV...</p>;
+
   return (
     <>
+      {/* === Modals === */}
       <AnimatePresence>
         {isModalOpen && (
           <motion.div
-            className="fixed inset-0  flex items-center justify-center z-50"
+            className="fixed inset-0 flex items-center justify-center z-50"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -127,7 +166,7 @@ useEffect(() => {
 
         {isConfirmOpen && (
           <motion.div
-            className="fixed inset-0  flex items-center justify-center z-50"
+            className="fixed inset-0 flex items-center justify-center z-50"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -151,6 +190,7 @@ useEffect(() => {
         )}
       </AnimatePresence>
 
+      {/* === Header === */}
       <motion.div
         className="flex flex-col items-center text-center mt-5 font-sans"
         initial={{ opacity: 0, y: -30 }}
@@ -164,7 +204,9 @@ useEffect(() => {
         <StepProgres currentStep={2} />
       </div>
 
-      <div className="flex flex-wrap overflow-x-auto justify-between items-start gap-10 max-w-6xl mx-auto mt-10">
+      {/* === Konten utama === */}
+      <div className="flex flex-wrap justify-between items-start gap-10 max-w-6xl mx-auto mt-10">
+        {/* Deskripsi */}
         <div className="flex-1 min-w-[300px] ml-10">
           <h1 className="text-2xl mb-2 font-bold font-sans">Cek Data</h1>
           <h4 className="text-base mt-2 font-normal text-justify font-sans w-[400px]">
@@ -172,8 +214,10 @@ useEffect(() => {
           </h4>
         </div>
 
-        <div className="flex-1 min-w-[500px] p-4 overflow-x-auto bg-gray-100 rounded-md shadow">
-          <div className="flex justify-end mb-2">
+        {/* Tabel dan kontrol */}
+        <div className="flex-1 min-w-[500px] flex flex-col gap-3">
+          {/* Search */}
+          <div className="flex justify-end">
             <input
               type="text"
               placeholder="Cari..."
@@ -183,26 +227,61 @@ useEffect(() => {
             />
           </div>
 
-          <div className="min-w-max">
-            <DescribeTable
-              data={transposed ? handleTransposed(filteredData) : filteredData}
-              onCellChange={(rowIndex, key, value) => {
-                const updated = [...tableData];
-                updated[rowIndex][key] = value;
-                setTableData(updated);
-              }}
-            />
+          {/* Dropdown pilih CSV */}
+          <div className="mb-3">
+            <label className="mr-2 font-semibold">Pilih File CSV:</label>
+            <select
+              value={selectedFileId}
+              onChange={(e) => setSelectedFileId(e.target.value)}
+              className="border rounded px-2 py-1"
+            >
+              {uploadedFiles.map(file => (
+                <option key={file.id} value={file.id}>{file.original_name}</option>
+              ))}
+            </select>
           </div>
 
+          {/* Table */}
+          <div className="overflow-x-auto">
+            <div className="p-4 bg-gray-100 rounded-md shadow min-w-max">
+              <DescribeTable
+                data={transposed ? handleTransposed(filteredData) : filteredData}
+                onCellChange={(rowIndex, key, value) => {
+                  const updated = [...tableData];
+                  updated[rowIndex][key] = value;
+                  setTableData(updated);
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Tombol */}
           <div className="flex justify-end gap-4 mt-3">
-            <button onClick={() => setTransposed(prev => !prev)} className="px-4 py-2 border rounded-full hover:bg-black/10">Tukar Kolom dan Baris</button>
-            <button onClick={() => setIsModalOpen(true)} disabled={transposed} className={`px-4 py-2 border rounded-full hover:bg-black/10 ${transposed ? 'opacity-50 cursor-not-allowed' : ''}`} >Tambah Kolom</button>
-            <button onClick={confirmDeleteLastColumn} disabled={transposed} className={`px-4 py-2 border rounded-full hover:bg-black/10 ${transposed ? 'opacity-50 cursor-not-allowed' : ''}`} >Hapus Kolom</button>
+            <button
+              onClick={() => setTransposed(prev => !prev)}
+              className="px-4 py-2 border rounded-full hover:bg-black/10"
+            >
+              Tukar Kolom dan Baris
+            </button>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              disabled={transposed}
+              className={`px-4 py-2 border rounded-full hover:bg-black/10 ${transposed ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              Tambah Kolom
+            </button>
+            <button
+              onClick={confirmDeleteLastColumn}
+              disabled={transposed}
+              className={`px-4 py-2 border rounded-full hover:bg-black/10 ${transposed ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              Hapus Kolom
+            </button>
           </div>
         </div>
       </div>
 
-      <NextBack nextLink="#" backLink="/UpData" onNext={handleNext} />
+      <NextBack nextLink="/Visualize" backLink="/UpData" />
     </>
   );
 };

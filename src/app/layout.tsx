@@ -1,6 +1,6 @@
 import NavBar from "@/components/NavBar";
 import { DataProvider } from "./context/DataContext";
-
+import { AuthProvider } from "../hooks/AuthContext";
 
 import './globals.css'
 
@@ -14,10 +14,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
-        <DataProvider>
+      <AuthProvider>
+          <DataProvider>
           <NavBar />
           {children}
         </DataProvider>
+      </AuthProvider>
+
       </body>
     </html>
   );

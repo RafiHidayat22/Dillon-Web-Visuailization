@@ -1,8 +1,22 @@
-import Link from 'next/link'
+'use client'
+
+import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Card from '@/components/Card' // pastikan ini juga SSR, bukan client component
 
 const HomePage = () => {
+  const router = useRouter();
+
+  const handleMulai = () => {
+    // Cek token di localStorage
+    const token = localStorage.getItem('token');
+    if (token) {
+      router.push('/UpData'); // Sudah login, lanjut ke halaman UpData
+    } else {
+      router.push('/auth/login'); // Belum login, redirect ke login
+    }
+  }
+
   return (
     <>
       <div className="bg-gray-100 flex justify-between items-center px-10 py-10 flex-wrap">
@@ -15,12 +29,12 @@ const HomePage = () => {
           <h4 className="font-normal text-2xl mt-5 leading-tight">
             Jelajahi visualisasi interaktif yang membantu anda memahami tren, pola, dan insight penting dari data yang kompleks
           </h4>
-          <Link
-            href="/UpData"
-            className="inline-block mt-10 px-8 py-3 text-lg font-bold bg-[#1475F3] text-black rounded-xl hover:bg-[#00cccc] transition duration-300 no-underline"
+          <button
+            onClick={handleMulai}
+            className="inline-block mt-10 px-8 py-3 text-lg font-bold bg-[#1475F3] text-black rounded-xl hover:bg-[#00cccc] transition duration-300"
           >
             Mulai
-          </Link>
+          </button>
         </section>
 
         {/* Kanan */}

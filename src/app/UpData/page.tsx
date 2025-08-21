@@ -1,30 +1,77 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import StepProgres from '@/components/StepProgres'
 import NextBack from '@/components/NextBack'
+import { useRouter } from 'next/navigation'
 
 const UpData = () => {
+  const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [selectedFile, setSelectedFile] = useState<string>('')
+  const [loading, setLoading] = useState(false)
+  const [user, setUser] = useState<{ name: string } | null>(null)
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      if (file.name.endsWith('.csv')) {
-        setSelectedFile(file.name)
-      } else {
-        setSelectedFile('')
-        alert('Hanya file CSV yang diperbolehkan!')
-      }
+  // ==== AUTH CHECK ====
+  useEffect(() => {
+    const token = localStorage.getItem('token')
+    const name = localStorage.getItem('name')
+
+    if (!token || !name) {
+      router.push('/auth/login') // redirect kalau tidak login
+    } else {
+      setUser({ name })
     }
+  }, [router])
+
+const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0]
+  if (!file) return
+
+  if (!file.name.endsWith('.csv')) {
+    alert('Hanya file CSV yang diperbolehkan!')
+    return
   }
 
-  const triggerFileSelect = () => {
-    fileInputRef.current?.click()
+  setLoading(true)
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      alert('Anda harus login untuk mengunggah file')
+      router.push('/auth/login')
+      return
+    }
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const res = await fetch('/api/upData', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+
+    const result = await res.json()
+    if (res.ok) {
+      alert(result.message || 'Upload berhasil!')
+    } else {
+      alert(result.error || 'Terjadi kesalahan saat upload')
+    }
+  } catch (err) {
+    console.error(err)
+    alert('Gagal mengunggah file')
+  } finally {
+    setLoading(false)
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
+}
+
+
+
+  if (!user) return null // sembunyikan halaman sementara cek auth
 
   return (
     <>
@@ -59,32 +106,23 @@ const UpData = () => {
             <strong>Tips:</strong> Pastikan file berekstensi .csv
           </h4>
 
-          <motion.button
-            onClick={triggerFileSelect}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="mt-5 w-[120px] px-4 py-2 border border-black rounded-full bg-white flex justify-between items-center hover:bg-black/10 transition"
-          >
-            Pilih File
-            <Image src="/fileIcon.png" alt="File Icon" width={15} height={15} />
-          </motion.button>
-
           <input
             type="file"
             accept=".csv"
-            className="hidden"
             ref={fileInputRef}
             onChange={handleFileChange}
+            className="mt-5 block w-full border border-black rounded-full px-4 py-2 cursor-pointer"
+            disabled={loading}
           />
 
-          {selectedFile && (
+          {loading && (
             <motion.p
-              className="mt-5"
+              className="mt-3 text-green-600"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5 }}
             >
-              <strong>File terpilih:</strong> {selectedFile}
+              Mengunggah file...
             </motion.p>
           )}
         </div>
