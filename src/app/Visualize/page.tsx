@@ -186,208 +186,236 @@ const Visualize = () => {
 
   if (!user) return null
 
-  const renderChart = () => {
-    const xAxisProps = { dataKey: 'name', label: { value: labelKey, position: 'insideBottom', offset: -5 } }
-    const yAxisProps = { label: { value: valueKey, angle: -90, position: 'insideLeft', offset: 10 } }
+const renderChart = () => {
+  const xAxisProps = { 
+    dataKey: 'name', 
+    label: { value: labelKey, position: 'insideBottom', offset: -5 } 
+  }
+  const yAxisProps = { 
+    label: { value: valueKey, angle: -90, position: 'insideLeft', offset: 10 } 
+  }
 
-    if (useGrouping && groupingSupportedCharts.includes(chartType)) {
-      switch (chartType) {
-        case 'bar':
-          return (
-            <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis {...xAxisProps} />
-              <YAxis {...yAxisProps} />
-              <Tooltip />
-              <Legend />
+  if (useGrouping && groupingSupportedCharts.includes(chartType)) {
+    switch (chartType) {
+      case 'bar':
+        return (
+          <BarChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis {...xAxisProps} />
+            <YAxis {...yAxisProps} />
+            <Tooltip />
+            <Legend />
+            {groupCategories.map((cat, i) => (
+              <Bar key={cat} dataKey={cat} fill={chartColors[i % chartColors.length]} />
+            ))}
+          </BarChart>
+        )
+      case 'horizontalBar':
+        return (
+          <BarChart data={chartData} layout="vertical">
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis type="number" label={{ value: valueKey, position: 'insideBottom', offset: -5 }} />
+            <YAxis type="category" dataKey="name" label={{ value: labelKey, angle: -90, position: 'insideLeft', offset: 10 }} />
+            <Tooltip />
+            <Legend />
+            {groupCategories.map((cat, i) => (
+              <Bar key={cat} dataKey={cat} fill={chartColors[i % chartColors.length]} />
+            ))}
+          </BarChart>
+        )
+      case 'line':
+        return (
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis {...xAxisProps} />
+            <YAxis {...yAxisProps} />
+            <Tooltip />
+            <Legend />
+            {groupCategories.map((cat, i) => (
+              <Line key={cat} type="monotone" dataKey={cat} stroke={chartColors[i % chartColors.length]} strokeWidth={3} dot={{ r: 5 }} />
+            ))}
+          </LineChart>
+        )
+      case 'area':
+        return (
+          <AreaChart data={chartData}>
+            <defs>
               {groupCategories.map((cat, i) => (
-                <Bar key={cat} dataKey={cat} fill={chartColors[i % chartColors.length]} />
-              ))}
-            </BarChart>
-          )
-        case 'horizontalBar':
-          return (
-            <BarChart data={chartData} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" />
-              <YAxis type="category" dataKey="name" />
-              <Tooltip />
-              <Legend />
-              {groupCategories.map((cat, i) => (
-                <Bar key={cat} dataKey={cat} fill={chartColors[i % chartColors.length]} />
-              ))}
-            </BarChart>
-          )
-        case 'line':
-          return (
-            <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis {...xAxisProps} />
-              <YAxis {...yAxisProps} />
-              <Tooltip />
-              <Legend />
-              {groupCategories.map((cat, i) => (
-                <Line key={cat} type="monotone" dataKey={cat} stroke={chartColors[i % chartColors.length]} strokeWidth={3} dot={{ r: 5 }} />
-              ))}
-            </LineChart>
-          )
-        case 'area':
-          return (
-            <AreaChart data={chartData}>
-              <defs>
-                {groupCategories.map((cat, i) => (
-                  <linearGradient key={cat} id={`color${cat}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={chartColors[i % chartColors.length]} stopOpacity={0.8} />
-                    <stop offset="95%" stopColor={chartColors[i % chartColors.length]} stopOpacity={0.1} />
-                  </linearGradient>
-                ))}
-              </defs>
-              <XAxis {...xAxisProps} />
-              <YAxis {...yAxisProps} />
-              <Tooltip />
-              <Legend />
-              {groupCategories.map((cat, i) => (
-                <Area key={cat} type="monotone" dataKey={cat} stackId="1" stroke={chartColors[i % chartColors.length]} fill={`url(#color${cat})`} />
-              ))}
-            </AreaChart>
-          )
-        case 'composed':
-          return (
-            <ComposedChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis {...xAxisProps} />
-              <YAxis {...yAxisProps} />
-              <Tooltip />
-              <Legend />
-              {groupCategories.map((cat, i) => <Bar key={`bar-${cat}`} dataKey={cat} fill={chartColors[i % chartColors.length]} />)}
-              {groupCategories.map((cat, i) => <Line key={`line-${cat}`} type="monotone" dataKey={cat} stroke={chartColors[(i + 2) % chartColors.length]} strokeWidth={2} />)}
-            </ComposedChart>
-          )
-        default:
-          return <div />
-      }
-    } else {
-      switch (chartType) {
-        case 'bar':
-          return (
-            <BarChart data={transformedData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis {...xAxisProps} />
-              <YAxis {...yAxisProps} />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="value" fill={chartColors[0]} radius={[10, 10, 0, 0]}>
-                <LabelList dataKey="value" position="top" />
-              </Bar>
-            </BarChart>
-          )
-        case 'horizontalBar':
-          return (
-            <BarChart data={transformedData} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" />
-              <YAxis type="category" dataKey="name" />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="value" fill={chartColors[0]}>
-                <LabelList dataKey="value" position="right" />
-              </Bar>
-            </BarChart>
-          )
-        case 'histogram':
-          return (
-            <BarChart data={histogramData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="name" 
-                label={{ value: `${valueKey} (Bins)`, position: 'insideBottom', offset: -5 }}
-                angle={-45}
-                textAnchor="end"
-                height={100}
-              />
-              <YAxis label={{ value: 'Frequency', angle: -90, position: 'insideLeft' }} />
-              <Tooltip 
-                formatter={(value, name, props) => [
-                  `Frequency: ${value}`,
-                  `Range: ${props.payload?.range || ''}`
-                ]}
-              />
-              <Bar dataKey="value" fill={chartColors[0]} stroke={chartColors[1] || '#8884d8'} strokeWidth={1}>
-                <LabelList dataKey="value" position="top" />
-              </Bar>
-            </BarChart>
-          )
-        case 'line':
-          return (
-            <LineChart data={transformedData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis {...xAxisProps} />
-              <YAxis {...yAxisProps} />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="value" stroke={chartColors[0]} strokeWidth={3} dot={{ r: 5 }}>
-                <LabelList dataKey="value" position="top" />
-              </Line>
-            </LineChart>
-          )
-        case 'area':
-          return (
-            <AreaChart data={transformedData}>
-              <defs>
-                <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={chartColors[0]} stopOpacity={0.8} />
-                  <stop offset="95%" stopColor={chartColors[0]} stopOpacity={0} />
+                <linearGradient key={cat} id={`color${cat}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={chartColors[i % chartColors.length]} stopOpacity={0.8} />
+                  <stop offset="95%" stopColor={chartColors[i % chartColors.length]} stopOpacity={0.1} />
                 </linearGradient>
-              </defs>
-              <XAxis {...xAxisProps} />
-              <YAxis {...yAxisProps} />
-              <Tooltip />
-              <Area type="monotone" dataKey="value" stroke={chartColors[0]} fill="url(#colorValue)">
-                <LabelList dataKey="value" position="top" />
-              </Area>
-            </AreaChart>
-          )
-        case 'scatter':
-          return (
-            <ScatterChart>
-              <CartesianGrid />
-              <XAxis {...xAxisProps} type="category" />
-              <YAxis {...yAxisProps} />
-              <Tooltip />
-              <Scatter data={transformedData} fill={chartColors[0]}>
-                <LabelList dataKey="value" position="top" />
-              </Scatter>
-            </ScatterChart>
-          )
-        case 'radar':
-          return (
-            <RadarChart data={transformedData} cx="50%" cy="50%" outerRadius="80%">
-              <PolarGrid />
-              <PolarAngleAxis dataKey="name" />
-              <PolarRadiusAxis />
-              <Radar dataKey="value" stroke={chartColors[0]} fill={chartColors[0]} fillOpacity={0.6} />
-              <Tooltip />
-            </RadarChart>
-          )
-        case 'composed':
-          return (
-            <ComposedChart data={transformedData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis {...xAxisProps} />
-              <YAxis {...yAxisProps} />
-              <Tooltip />
-              <Legend />
-              <Bar dataKey="value" barSize={20} fill={chartColors[0]}>
-                <LabelList dataKey="value" position="top" />
-              </Bar>
-              <Line type="monotone" dataKey="value" stroke={chartColors[1] || '#ff7300'} />
-            </ComposedChart>
-          )
-        default:
-          return <div />
-      }
+              ))}
+            </defs>
+            <XAxis {...xAxisProps} />
+            <YAxis {...yAxisProps} />
+            <Tooltip />
+            <Legend />
+            {groupCategories.map((cat, i) => (
+              <Area key={cat} type="monotone" dataKey={cat} stackId="1" stroke={chartColors[i % chartColors.length]} fill={`url(#color${cat})`} />
+            ))}
+          </AreaChart>
+        )
+      case 'composed':
+        return (
+          <ComposedChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis {...xAxisProps} />
+            <YAxis {...yAxisProps} />
+            <Tooltip />
+            <Legend />
+            {groupCategories.map((cat, i) => <Bar key={`bar-${cat}`} dataKey={cat} fill={chartColors[i % chartColors.length]} />)}
+            {groupCategories.map((cat, i) => <Line key={`line-${cat}`} type="monotone" dataKey={cat} stroke={chartColors[(i + 2) % chartColors.length]} strokeWidth={2} />)}
+          </ComposedChart>
+        )
+      default:
+        return <div />
+    }
+  } else {
+    switch (chartType) {
+      case 'bar':
+        return (
+          <BarChart data={transformedData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis {...xAxisProps} />
+            <YAxis {...yAxisProps} />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="value" fill={chartColors[0]} radius={[10, 10, 0, 0]}>
+              <LabelList dataKey="value" position="top" />
+            </Bar>
+          </BarChart>
+        )
+      case 'horizontalBar':
+        return (
+          <BarChart data={transformedData} layout="vertical">
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis type="number" label={{ value: valueKey, position: 'insideBottom', offset: -5 }} />
+            <YAxis type="category" dataKey="name" label={{ value: labelKey, angle: -90, position: 'insideLeft', offset: 10 }} />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="value" fill={chartColors[0]}>
+              <LabelList dataKey="value" position="right" />
+            </Bar>
+          </BarChart>
+        )
+      case 'histogram':
+        return (
+          <BarChart data={histogramData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis 
+              dataKey="name" 
+              label={{ value: `${valueKey} (Bins)`, position: 'insideBottom', offset: -5 }}
+              angle={-45}
+              textAnchor="end"
+              height={100}
+            />
+            <YAxis label={{ value: 'Frequency', angle: -90, position: 'insideLeft' }} />
+            <Tooltip 
+              formatter={(value, name, props) => [
+                `Frequency: ${value}`,
+                `Range: ${props.payload?.range || ''}`
+              ]}
+            />
+            <Bar dataKey="value" fill={chartColors[0]} stroke={chartColors[1] || '#8884d8'} strokeWidth={1}>
+              <LabelList dataKey="value" position="top" />
+            </Bar>
+          </BarChart>
+        )
+      case 'line':
+        return (
+          <LineChart data={transformedData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis {...xAxisProps} />
+            <YAxis {...yAxisProps} />
+            <Tooltip />
+            <Legend />
+            <Line type="monotone" dataKey="value" stroke={chartColors[0]} strokeWidth={3} dot={{ r: 5 }}>
+              <LabelList dataKey="value" position="top" />
+            </Line>
+          </LineChart>
+        )
+      case 'area':
+        return (
+          <AreaChart data={transformedData}>
+            <defs>
+              <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={chartColors[0]} stopOpacity={0.8} />
+                <stop offset="95%" stopColor={chartColors[0]} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <XAxis {...xAxisProps} />
+            <YAxis {...yAxisProps} />
+            <Tooltip />
+            <Area type="monotone" dataKey="value" stroke={chartColors[0]} fill="url(#colorValue)">
+              <LabelList dataKey="value" position="top" />
+            </Area>
+          </AreaChart>
+        )
+      case 'pie':
+        return (
+          <PieChart>
+            <Tooltip />
+            <Legend />
+            <Pie
+              data={transformedData}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              outerRadius={120}
+              label
+            >
+              {transformedData.map((entry, index) => (
+                <Cell
+                  key={`cell-${index}`}
+                  fill={chartColors[index % chartColors.length]}
+                />
+              ))}
+            </Pie>
+          </PieChart>
+        )
+      case 'scatter':
+        const scatterData = transformedData.map((d, i) => ({ x: i + 1, y: d.value, name: d.name }))
+        return (
+          <ScatterChart>
+            <CartesianGrid />
+            <XAxis dataKey="x" name="Index" label={{ value: labelKey, position: 'insideBottom', offset: -5 }} />
+            <YAxis dataKey="y" name={valueKey} label={{ value: valueKey, angle: -90, position: 'insideLeft', offset: 10 }} />
+            <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+            <Scatter data={scatterData} fill={chartColors[0]} />
+          </ScatterChart>
+        )
+      case 'radar':
+        return (
+          <RadarChart data={transformedData} cx="50%" cy="50%" outerRadius="80%">
+            <PolarGrid />
+            <PolarAngleAxis dataKey="name" />
+            <PolarRadiusAxis />
+            <Radar dataKey="value" stroke={chartColors[0]} fill={chartColors[0]} fillOpacity={0.6} />
+            <Tooltip />
+          </RadarChart>
+        )
+      case 'composed':
+        return (
+          <ComposedChart data={transformedData}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis {...xAxisProps} />
+            <YAxis {...yAxisProps} />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="value" barSize={20} fill={chartColors[0]}>
+              <LabelList dataKey="value" position="top" />
+            </Bar>
+            <Line type="monotone" dataKey="value" stroke={chartColors[1] || '#ff7300'} />
+          </ComposedChart>
+        )
+      default:
+        return <div />
     }
   }
+}
+
 
   return (
     <>
