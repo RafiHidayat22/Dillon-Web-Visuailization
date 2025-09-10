@@ -555,9 +555,14 @@ const Page = () => {
             </BarChart>
           )
         case 'histogram': {
-          const histogramData = chartConfig?.valueKey
+          // Gunakan data mentah untuk histogram, bukan chartData yang sudah diproses
+          const histogramData = chartConfig?.data && chartConfig?.valueKey
             ? createHistogramData(chartConfig.data, chartConfig.valueKey, chartConfig.histogramBins || 10)
             : []
+
+          if (histogramData.length === 0) {
+            return <p className="text-gray-500">Data tidak cukup untuk membuat histogram</p>
+          }
 
           return (
             <BarChart data={histogramData}>
@@ -568,13 +573,12 @@ const Page = () => {
                 angle={-45}
                 textAnchor="end"
                 height={80}
+                interval={0}
               />
               <YAxis label={{ value: "Frequency", angle: -90, position: 'insideLeft' }} />
               <Tooltip 
-                formatter={(value, name, props) => [
-                  `Frequency: ${value}`,
-                  `Range: ${props.payload?.name || ''}`
-                ]}
+                formatter={(value) => [`Frequency: ${value}`]}
+                labelFormatter={(label) => `Range: ${label}`}
               />
               <Legend />
               <Bar dataKey="value" fill={chartColors[0]} stroke={chartColors[1] || '#8884d8'} strokeWidth={1}>
