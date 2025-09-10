@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-
+import Link from "next/link";
 export default function RegisterPage() {
   const router = useRouter();
 
@@ -49,9 +49,9 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gray-200">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-6 text-center">Register</h1>
+        <h1 className="text-2xl font-bold mb-6 text-center">Daftar</h1>
         {message && <p className="mb-4 text-center text-red-500">{message}</p>}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -83,16 +83,17 @@ export default function RegisterPage() {
               className="w-full border border-gray-300 px-3 py-2 rounded"
               required
             />
+            <p className="mt-2 text-sm">Sudah Punya Akun ? <Link href='/auth/login' className="text-blue-500">Masuk</Link></p>
           </div>
           <button
             type="submit"
             className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition"
             disabled={loading}
           >
-            {loading ? "Processing..." : "Register"}
+            {loading ? "Processing..." : "Daftar"}
           </button>
         </form>
-      </div>
+      </div> 
     </div>
   );
 }

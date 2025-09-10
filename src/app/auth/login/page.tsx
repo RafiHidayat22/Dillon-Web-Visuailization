@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/src/hooks/AuthContext";
-
+import Link from "next/link";
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAuth();
@@ -31,7 +31,8 @@ export default function LoginPage() {
 
       if (res.ok) {
         login(data.user.name, data.token) // update context
-        setMessage("Login berhasil! Mengarahkan ke UpData...");
+        localStorage.setItem("user_id", data.user.id);
+        setMessage("Login berhasil");
 
         setTimeout(() => {
           router.push("/UpData");
@@ -48,9 +49,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gray-200">
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold mb-6 text-center">Login</h1>
+        <h1 className="text-2xl font-bold mb-6 text-center">Masuk</h1>
         {message && <p className="mb-4 text-center text-red-500">{message}</p>}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -72,13 +73,14 @@ export default function LoginPage() {
               className="w-full border border-gray-300 px-3 py-2 rounded"
               required
             />
+          <p className="mt-2 text-sm">Sudah Punya Akun ? <Link href='/auth/register' className="text-blue-500">Daftar</Link></p>
           </div>
           <button
             type="submit"
             className="cursor-pointer w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600 transition"
             disabled={loading}
           >
-            {loading ? "Processing..." : "Login"}
+            {loading ? "Processing..." : "Masuk"}
           </button>
         </form>
       </div>

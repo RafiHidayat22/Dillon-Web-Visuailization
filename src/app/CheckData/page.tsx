@@ -1,22 +1,20 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion'; 
+import { motion } from 'framer-motion'; 
 import StepProgres from '@/components/StepProgres';
 import NextBack from '@/components/NextBack';
 import { useDataContext } from '../context/DataContext';
 import { useRouter } from "next/navigation";
 import DescribeTable from '@/components/DescribeTable';
+import { Modal } from 'antd';
 
 interface DataRow {
   [key: string]: string | number | null | undefined;
 }
 
 const CheckData = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [newColumnName, setNewColumnName] = useState('');
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [columnToDelete, setColumnToDelete] = useState('');
   const [search, setSearch] = useState('');
   const [transposed, setTransposed] = useState(false);
   const [tableData, setTableData] = useState<DataRow[]>([]);
@@ -26,8 +24,18 @@ const CheckData = () => {
   const [uploadedFiles, setUploadedFiles] = useState<{ id: string; original_name: string }[]>([]);
   const [selectedFileId, setSelectedFileId] = useState<string>("");
 
+  // === modal antd state ===
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalContent, setModalContent] = useState('');
+  const [onOkAction, setOnOkAction] = useState<(() => void) | null>(null);
+
   const { setData } = useDataContext();
   const router = useRouter();
+
+  // === State tambahan untuk edit nama kolom ===
+  const [editingColumn, setEditingColumn] = useState<string | null>(null);
+  const [tempColumnEdit, setTempColumnEdit] = useState('');
 
   const filteredData = tableData.filter(row =>
     Object.values(row).some(value =>
@@ -48,7 +56,6 @@ const CheckData = () => {
     setUser({ name });
     setLoading(true);
 
-    // Ambil daftar file CSV
     fetch('/api/checkData/getUploadedFiles', {
       headers: { Authorization: `Bearer ${token}` }
     })
@@ -66,26 +73,53 @@ const CheckData = () => {
 
   // === Fetch data CSV saat file dipilih ===
   useEffect(() => {
-  console.log("Selected file id:", selectedFileId);
-  if (!selectedFileId) return;
+    if (!selectedFileId) return;
 
-  const token = localStorage.getItem('token');
-  setLoading(true);
+    const token = localStorage.getItem('token');
+    setLoading(true);
 
-  fetch(`/api/checkData/getUploadedDataById?id=${selectedFileId}`, {
-    headers: { Authorization: `Bearer ${token}` }
-  })
-    .then(res => res.json())
-    .then(res => {
-      console.log("Data fetched:", res.data);
-      setTableData(res.data || []);
-      setLoading(false);
+    fetch(`/api/checkData/getUploadedDataById?id=${selectedFileId}`, {
+      headers: { Authorization: `Bearer ${token}` }
     })
-    .catch(err => {
-      console.error(err);
-      setLoading(false);
+      .then(res => res.json())
+      .then(res => {
+        setTableData(res.data || []);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, [selectedFileId]);
+
+  // === Cek baris kosong & duplikat ===
+  useEffect(() => {
+    if (!tableData.length) return;
+
+    const emptyRows = tableData.filter(row =>
+      Object.values(row).every(val => val === null || val === undefined || val === '')
+    );
+
+    const duplicateRows: DataRow[] = [];
+    const seen = new Set<string>();
+    tableData.forEach(row => {
+      const key = JSON.stringify(row);
+      if (seen.has(key)) duplicateRows.push(row);
+      else seen.add(key);
     });
-}, [selectedFileId]);
+
+    if (emptyRows.length > 0) {
+      setModalTitle('Peringatan Baris Kosong');
+      setModalContent(`Terdapat ${emptyRows.length} baris kosong dalam tabel.`);
+      setOnOkAction(null);
+      setModalOpen(true);
+    } else if (duplicateRows.length > 0) {
+      setModalTitle('Peringatan Duplikat Data');
+      setModalContent(`Terdapat ${duplicateRows.length} baris duplikat dalam tabel.`);
+      setOnOkAction(null);
+      setModalOpen(true);
+    }
+  }, [tableData]);
 
   // === Transpose table ===
   const handleTransposed = (data: DataRow[]): DataRow[] => {
@@ -103,28 +137,131 @@ const CheckData = () => {
   };
 
   // === Tambah kolom baru ===
-  const handleAddColumn = () => {
-    if (!newColumnName.trim()) return;
-    const updated = tableData.map(row => ({ ...row, [newColumnName]: '' }));
+  const [inputColumnModalOpen, setInputColumnModalOpen] = useState(false);
+  const [tempColumnName, setTempColumnName] = useState('');
+
+  const handleAddColumnClick = () => {
+    setTempColumnName('');
+    setInputColumnModalOpen(true);
+  };
+
+  const handleAddColumnConfirm = () => {
+    const columnName = tempColumnName.trim();
+    if (!columnName) {
+      setModalTitle('Error');
+      setModalContent('Nama kolom tidak boleh kosong!');
+      setOnOkAction(null);
+      setModalOpen(true);
+      return;
+    }
+
+    if (tableData[0] && Object.keys(tableData[0]).includes(columnName)) {
+      setModalTitle('Error');
+      setModalContent(`Kolom "${columnName}" sudah ada!`);
+      setOnOkAction(null);
+      setModalOpen(true);
+      return;
+    }
+
+    const updated = tableData.map(row => ({ ...row, [columnName]: '' }));
     setTableData(updated);
-    setNewColumnName('');
-    setIsModalOpen(false);
+
+    setModalTitle('Kolom Ditambahkan');
+    setModalContent(`Kolom "${columnName}" berhasil ditambahkan.`);
+    setOnOkAction(null);
+    setModalOpen(true);
+
+    setInputColumnModalOpen(false);
   };
 
   // === Hapus kolom terakhir ===
   const confirmDeleteLastColumn = () => {
     if (!tableData.length) return;
+
     const keys = Object.keys(tableData[0]);
     const lastKey = keys[keys.length - 1];
-    setColumnToDelete(lastKey);
-    setIsConfirmOpen(true);
+
+    setModalTitle('Konfirmasi Hapus Kolom');
+    setModalContent(`Yakin ingin menghapus kolom terakhir "${lastKey}"?`);
+    setOnOkAction(() => () => {
+      const updated = tableData.map(({ [lastKey]: _, ...rest }) => rest);
+      setTableData(updated);
+      setModalOpen(false);
+    });
+    setModalOpen(true);
   };
 
-  const handleDeleteColumnConfirmed = () => {
-    const updated = tableData.map(({ [columnToDelete]: _, ...rest }) => rest);
-    setTableData(updated);
-    setIsConfirmOpen(false);
-    setColumnToDelete('');
+  // === Simpan data tabel ===
+  const handleSaveTableData = async () => {
+    if (!selectedFileId) return;
+
+    const token = localStorage.getItem('token');
+    setLoading(true);
+
+    try {
+      const res = await fetch(`/api/checkData/getUploadedDataById?id=${selectedFileId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ data: tableData })
+      });
+
+      const result = await res.json();
+      if (res.ok) {
+        setModalTitle('Berhasil');
+        setModalContent('Data berhasil disimpan!');
+        setOnOkAction(null);
+        setModalOpen(true);
+      } else {
+        setModalTitle('Gagal');
+        setModalContent(`Gagal menyimpan data: ${result.error || 'Unknown error'}`);
+        setOnOkAction(null);
+        setModalOpen(true);
+      }
+    } catch (err) {
+      console.error(err);
+      setModalTitle('Error');
+      setModalContent('Terjadi kesalahan saat menyimpan data');
+      setOnOkAction(null);
+      setModalOpen(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // === Simpan nama kolom setelah diedit ===
+  const handleColumnNameSave = (oldName: string) => {
+    const newName = tempColumnEdit.trim();
+    if (!newName) return;
+
+    if (tableData[0] && Object.keys(tableData[0]).includes(newName)) {
+      setModalTitle('Error');
+      setModalContent(`Kolom "${newName}" sudah ada!`);
+      setOnOkAction(null);
+      setModalOpen(true);
+      return;
+    }
+
+    const updatedData = tableData.map(row => {
+      const { [oldName]: oldValue, ...rest } = row;
+      return { ...rest, [newName]: oldValue };
+    });
+
+    setTableData(updatedData);
+    setEditingColumn(null);
+  };
+
+  // === Realtime edit column name saat mengetik ===
+  const handleColumnNameTyping = (oldName: string, newName: string) => {
+    if (!oldName) return;
+    const updatedData = tableData.map(row => {
+      const { [oldName]: oldValue, ...rest } = row;
+      return { ...rest, [newName]: oldValue };
+    });
+    setTableData(updatedData);
+    setTempColumnEdit(newName);
   };
 
   if (!user) return null;
@@ -132,64 +269,6 @@ const CheckData = () => {
 
   return (
     <>
-      {/* === Modals === */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <motion.div
-            className="fixed inset-0 flex items-center justify-center z-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div
-              className="bg-white p-6 rounded-lg shadow-lg text-center w-[400px]"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <h3 className="text-lg font-semibold">Tambah Kolom Baru</h3>
-              <input
-                type="text"
-                placeholder="Masukkan nama kolom"
-                className="w-full p-2 mt-4 border border-gray-300 rounded-md"
-                value={newColumnName}
-                onChange={(e) => setNewColumnName(e.target.value)}
-              />
-              <div className="flex gap-3 mt-4">
-                <button onClick={handleAddColumn} className="flex-1 py-2 bg-blue-600 text-white rounded-md">Tambah</button>
-                <button onClick={() => setIsModalOpen(false)} className="flex-1 py-2 bg-gray-400 text-white rounded-md">Batal</button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-
-        {isConfirmOpen && (
-          <motion.div
-            className="fixed inset-0 flex items-center justify-center z-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div
-              className="bg-white p-6 rounded-lg shadow-lg text-center w-[400px]"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <h3 className="text-lg font-semibold">
-                Yakin ingin menghapus kolom terakhir <span className="text-red-500">{columnToDelete}</span>?
-              </h3>
-              <div className="flex gap-3 mt-4">
-                <button onClick={handleDeleteColumnConfirmed} className="flex-1 py-2 bg-blue-600 text-white rounded-md">Ya</button>
-                <button onClick={() => setIsConfirmOpen(false)} className="flex-1 py-2 bg-gray-400 text-white rounded-md">Tidak</button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       {/* === Header === */}
       <motion.div
         className="flex flex-col items-center text-center mt-5 font-sans"
@@ -206,7 +285,6 @@ const CheckData = () => {
 
       {/* === Konten utama === */}
       <div className="flex flex-wrap justify-between items-start gap-10 max-w-6xl mx-auto mt-10">
-        {/* Deskripsi */}
         <div className="flex-1 min-w-[300px] ml-10">
           <h1 className="text-2xl mb-2 font-bold font-sans">Cek Data</h1>
           <h4 className="text-base mt-2 font-normal text-justify font-sans w-[400px]">
@@ -214,9 +292,7 @@ const CheckData = () => {
           </h4>
         </div>
 
-        {/* Tabel dan kontrol */}
         <div className="flex-1 min-w-[500px] flex flex-col gap-3">
-          {/* Search */}
           <div className="flex justify-end">
             <input
               type="text"
@@ -227,12 +303,15 @@ const CheckData = () => {
             />
           </div>
 
-          {/* Dropdown pilih CSV */}
           <div className="mb-3">
             <label className="mr-2 font-semibold">Pilih File CSV:</label>
             <select
               value={selectedFileId}
-              onChange={(e) => setSelectedFileId(e.target.value)}
+              onChange={(e) => {
+                const id = e.target.value;
+                setSelectedFileId(id);
+                localStorage.setItem("selectedFileId", id);
+              }}
               className="border rounded px-2 py-1"
             >
               {uploadedFiles.map(file => (
@@ -241,7 +320,6 @@ const CheckData = () => {
             </select>
           </div>
 
-          {/* Table */}
           <div className="overflow-x-auto">
             <div className="p-4 bg-gray-100 rounded-md shadow min-w-max">
               <DescribeTable
@@ -251,37 +329,80 @@ const CheckData = () => {
                   updated[rowIndex][key] = value;
                   setTableData(updated);
                 }}
+                editingColumn={editingColumn}
+                onStartEditingColumn={(col) => { setEditingColumn(col); setTempColumnEdit(col); }}
+                onColumnNameChange={(val) => setTempColumnEdit(val)}
+                onColumnNameSave={handleColumnNameSave}
+                onColumnNameTyping={handleColumnNameTyping}
+                tempColumnEdit={tempColumnEdit}
               />
             </div>
           </div>
 
-          {/* Tombol */}
           <div className="flex justify-end gap-4 mt-3">
             <button
               onClick={() => setTransposed(prev => !prev)}
-              className="px-4 py-2 border rounded-full hover:bg-black/10"
+              className="px-4 border rounded-full hover:bg-black/10"
             >
               Tukar Kolom dan Baris
             </button>
             <button
-              onClick={() => setIsModalOpen(true)}
+              onClick={handleAddColumnClick}
               disabled={transposed}
-              className={`px-4 py-2 border rounded-full hover:bg-black/10 ${transposed ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`px-4 border rounded-full hover:bg-black/10 ${transposed ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               Tambah Kolom
             </button>
             <button
               onClick={confirmDeleteLastColumn}
               disabled={transposed}
-              className={`px-4 py-2 border rounded-full hover:bg-black/10 ${transposed ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`px-2 border rounded-full hover:bg-black/10 ${transposed ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
               Hapus Kolom
+            </button>
+            <button
+              onClick={handleSaveTableData}
+              className="px-4 py-2 bg-green-600 text-white rounded-full hover:bg-green-700"
+            >
+              Save
             </button>
           </div>
         </div>
       </div>
 
       <NextBack nextLink="/Visualize" backLink="/UpData" />
+
+      {/* === Modal Antd === */}
+      <Modal
+        title={modalTitle}
+        open={modalOpen}
+        onOk={() => {
+          if (onOkAction) onOkAction();
+          setModalOpen(false);
+        }}
+        onCancel={() => setModalOpen(false)}
+        okText="OK"
+        cancelText="Tutup"
+      >
+        {modalContent}
+      </Modal>
+
+      <Modal
+        title="Tambah Kolom Baru"
+        open={inputColumnModalOpen}
+        onOk={handleAddColumnConfirm}
+        onCancel={() => setInputColumnModalOpen(false)}
+        okText="Tambah"
+        cancelText="Batal"
+      >
+        <input
+          type="text"
+          placeholder="Masukkan nama kolom"
+          value={tempColumnName}
+          onChange={(e) => setTempColumnName(e.target.value)}
+          className="w-full border px-2 py-1 rounded"
+        />
+      </Modal>
     </>
   );
 };

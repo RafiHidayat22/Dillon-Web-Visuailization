@@ -12,6 +12,12 @@ interface DataRow {
 interface DescribeTableProps {
   data: DataRow[];
   onCellChange?: (rowIndex: number, key: string, value: string) => void;
+  editingColumn?: string | null;
+  onStartEditingColumn?: (colName: string) => void;
+  onColumnNameChange?: (val: string) => void;
+  onColumnNameSave?: (oldName: string) => void;
+  tempColumnEdit?: string;
+  onColumnNameTyping?: (oldName: string, newName: string) => void;
 }
 
 const getCellType = (value: string | number | null | undefined): string => {
@@ -21,7 +27,6 @@ const getCellType = (value: string | number | null | undefined): string => {
   return 'text';
 };
 
-// Ubah index ke huruf seperti Excel
 const columnIndexToLetter = (index: number): string => {
   let letter = '';
   while (index >= 0) {
@@ -31,18 +36,24 @@ const columnIndexToLetter = (index: number): string => {
   return letter;
 };
 
-const DescribeTable: React.FC<DescribeTableProps> = ({ data, onCellChange }) => {
+const DescribeTable: React.FC<DescribeTableProps> = ({
+  data,
+  onCellChange,
+  editingColumn,
+  onStartEditingColumn,
+  onColumnNameChange,
+  onColumnNameSave,
+  tempColumnEdit,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  onColumnNameTyping,
+}) => {
   if (!data || data.length === 0) return null;
 
   const headers = Object.keys(data[0]);
 
   const columns: ColumnsType<DataRow> = [
     {
-      title: (
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div>No</div>
-        </div>
-      ),
+      title: <div>No</div>,
       dataIndex: 'no',
       key: 'no',
       width: 60,
@@ -53,7 +64,29 @@ const DescribeTable: React.FC<DescribeTableProps> = ({ data, onCellChange }) => 
       title: (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div style={{ fontWeight: 'bold' }}>{columnIndexToLetter(idx)}</div>
-          <div>{key}</div>
+{editingColumn === key ? (
+  <input
+    type="text"
+    value={tempColumnEdit ?? key}
+    onChange={(e) => {
+      const val = e.target.value;
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      onColumnNameChange && onColumnNameChange(val); // update tempColumnEdit saja
+    }}
+    onBlur={() => onColumnNameSave && onColumnNameSave(key)} // update tableData saat blur
+    onKeyDown={(e) => e.key === 'Enter' && onColumnNameSave && onColumnNameSave(key)}
+    style={{ width: '80%', textAlign: 'center' }}
+    autoFocus
+  />
+) : (
+  <div
+    style={{ cursor: 'pointer', minWidth: '40px' }}
+    onClick={() => onStartEditingColumn && onStartEditingColumn(key)}
+  >
+    {key}
+  </div>
+)}
+
         </div>
       ),
       dataIndex: key,
@@ -72,15 +105,7 @@ const DescribeTable: React.FC<DescribeTableProps> = ({ data, onCellChange }) => 
           <input
             type="text"
             value={value ?? ''}
-            onChange={(e) => {
-              if (
-                typeof rowIndex === 'number' &&
-                typeof key === 'string' &&
-                typeof e.target.value === 'string'
-              ) {
-                onCellChange?.(rowIndex, key, e.target.value);
-              }
-            }}
+            onChange={(e) => onCellChange?.(rowIndex, key, e.target.value)}
             style={{
               width: '100%',
               border: 'none',
@@ -96,11 +121,7 @@ const DescribeTable: React.FC<DescribeTableProps> = ({ data, onCellChange }) => 
   ];
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-    >
+    <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
       <Table
         dataSource={data}
         columns={columns}

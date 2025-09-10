@@ -24,6 +24,7 @@ export async function POST(req: Request) {
     );
 
     return NextResponse.json({ message: "Register berhasil", userId });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }

@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import StepProgres from '@/components/StepProgres'
 import NextBack from '@/components/NextBack'
 import { useRouter } from 'next/navigation'
+import { Modal } from 'antd'
 
 const UpData = () => {
   const router = useRouter()
@@ -13,65 +14,84 @@ const UpData = () => {
   const [loading, setLoading] = useState(false)
   const [user, setUser] = useState<{ name: string } | null>(null)
 
+  // === state modal ===
+  const [modalOpen, setModalOpen] = useState(false)
+  const [modalTitle, setModalTitle] = useState('')
+  const [modalContent, setModalContent] = useState('')
+  const [onOkAction, setOnOkAction] = useState<(() => void) | null>(null)
+
   // ==== AUTH CHECK ====
   useEffect(() => {
     const token = localStorage.getItem('token')
     const name = localStorage.getItem('name')
 
     if (!token || !name) {
-      router.push('/auth/login') // redirect kalau tidak login
+      router.push('/auth/login')
     } else {
       setUser({ name })
     }
   }, [router])
 
-const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0]
-  if (!file) return
-
-  if (!file.name.endsWith('.csv')) {
-    alert('Hanya file CSV yang diperbolehkan!')
-    return
+  const showModal = (title: string, content: string, onOk?: () => void) => {
+    setModalTitle(title)
+    setModalContent(content)
+    setOnOkAction(() => onOk || null)
+    setModalOpen(true)
   }
 
-  setLoading(true)
-  try {
-    const token = localStorage.getItem('token')
-    if (!token) {
-      alert('Anda harus login untuk mengunggah file')
-      router.push('/auth/login')
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.name.endsWith('.csv')) {
+      showModal('Format File Salah', 'Hanya file CSV yang diperbolehkan!')
       return
     }
 
-    const formData = new FormData()
-    formData.append('file', file)
+    setLoading(true)
+    try {
+      const token = localStorage.getItem('token')
+      if (!token) {
+        showModal('Login Diperlukan', 'Anda harus login untuk mengunggah file.', () => {
+          router.push('/auth/login')
+        })
+        return
+      }
 
-    const res = await fetch('/api/upData', {
-      method: 'POST',
-      body: formData,
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
+      const formData = new FormData()
+      formData.append('file', file)
 
-    const result = await res.json()
-    if (res.ok) {
-      alert(result.message || 'Upload berhasil!')
-    } else {
-      alert(result.error || 'Terjadi kesalahan saat upload')
+      const res = await fetch('/api/upData', {
+        method: 'POST',
+        body: formData,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      const result = await res.json()
+      if (res.ok) {
+        // simpan datasetId
+        if (result.datasetId) {
+          localStorage.setItem('selectedFileId', result.datasetId)
+        }
+
+        showModal('Upload Berhasil', result.message || 'File CSV berhasil diunggah!', () => {
+          router.push('/CheckData')
+        })
+      } else {
+        showModal('Gagal Upload', result.error || 'Terjadi kesalahan saat upload')
+      }
+    } catch (err) {
+      console.error(err)
+      showModal('Error', 'Gagal mengunggah file')
+    } finally {
+      setLoading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
-  } catch (err) {
-    console.error(err)
-    alert('Gagal mengunggah file')
-  } finally {
-    setLoading(false)
-    if (fileInputRef.current) fileInputRef.current.value = ''
   }
-}
 
-
-
-  if (!user) return null // sembunyikan halaman sementara cek auth
+  if (!user) return null
 
   return (
     <>
@@ -149,6 +169,21 @@ const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
       </motion.div>
 
       <NextBack nextLink="/CheckData" backLink="/" />
+
+      {/* === Modal Popup === */}
+      <Modal
+        title={modalTitle}
+        open={modalOpen}
+        onOk={() => {
+          if (onOkAction) onOkAction()
+          setModalOpen(false)
+        }}
+        onCancel={() => setModalOpen(false)}
+        okText="OK"
+        cancelText="Tutup"
+      >
+        {modalContent}
+      </Modal>
     </>
   )
 }
