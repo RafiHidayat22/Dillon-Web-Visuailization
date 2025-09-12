@@ -1,5 +1,4 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client'
 
@@ -24,6 +23,8 @@ import {
 
 const { Option } = Select
 const { Title, Paragraph } = Typography
+
+
 
 const defaultColors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#ff7c7c']
 
@@ -84,6 +85,22 @@ const Visualize = () => {
 
   const [useGrouping, setUseGrouping] = useState(false)
   const [groupKey, setGroupKey] = useState('')
+  const [pieLabelFormat, setPieLabelFormat] = useState<'percent' | 'value'>('percent')
+  const [usePieAggregate, setUsePieAggregate] = useState(true) // default aktif
+
+
+  const aggregatePieData = (data: any[], labelKey: string, valueKey: string) => {
+  const result: Record<string, number> = {}
+  data.forEach(item => {
+    const label = item[labelKey]
+    const value = Number(item[valueKey]) || 0
+    if (label) {
+      result[label] = (result[label] || 0) + value
+    }
+  })
+  return Object.entries(result).map(([name, value]) => ({ name, value }))
+}
+
 
   // Histogram specific state
   const [histogramBins, setHistogramBins] = useState(10)
@@ -362,29 +379,41 @@ const renderChart = () => {
             </Area>
           </AreaChart>
         )
-      case 'pie':
-        return (
-          <PieChart>
-            <Tooltip />
-            <Legend />
-            <Pie
-              data={transformedData}
-              dataKey="value"
-              nameKey="name"
-              cx="50%"
-              cy="50%"
-              outerRadius={120}
-              label={({ name, value, percent }) => `${name}: ${value} (${((percent ?? 0) * 100).toFixed(1)}%)`}
-            >
-              {transformedData.map((entry, index) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={chartColors[index % chartColors.length]}
-                />
-              ))}
-            </Pie>
-          </PieChart>
-        )
+case 'pie':
+  const pieData = usePieAggregate
+    ? aggregatePieData(data, labelKey, valueKey)
+    : transformedData
+
+  return (
+    <PieChart>
+      <Tooltip />
+      <Legend />
+      <Pie
+        data={pieData}
+        dataKey="value"
+        nameKey="name"
+        cx="50%"
+        cy="50%"
+        outerRadius={120}
+        label={({ name, value, percent }) => {
+          if (pieLabelFormat === 'percent') {
+            return `${name}: ${value} (${((percent ?? 0) * 100).toFixed(1)}%)`
+          } else {
+            return `${name}: ${value}`
+          }
+        }}
+      >
+        {pieData.map((entry, index) => (
+          <Cell
+            key={`cell-${index}`}
+            fill={chartColors[index % chartColors.length]}
+          />
+        ))}
+      </Pie>
+    </PieChart>
+  )
+
+
       case 'scatter':
         const scatterData = transformedData.map((d, i) => ({ x: i + 1, y: d.value, name: d.name }))
         return (
@@ -470,6 +499,28 @@ const renderChart = () => {
               <Option value="composed">Composed Chart</Option>
             </Select>
           </div>
+          {chartType === 'pie' && (
+          <div>
+            <label className="font-semibold mr-2">Format Label Pie:</label>
+            <Select value={pieLabelFormat} onChange={val => setPieLabelFormat(val)} style={{ width: 200 }}>
+              <Option value="percent">Persentase (%)</Option>
+              <Option value="value">Nilai Asli</Option>
+            </Select>
+          </div>
+        )}
+
+        {chartType === 'pie' && (
+  <div>
+    <Checkbox checked={usePieAggregate} onChange={e => setUsePieAggregate(e.target.checked)}>
+      <span className="font-semibold">Gabungkan Nilai dengan Label Sama</span>
+    </Checkbox>
+    <div className="text-sm text-gray-600 mt-1">
+      Jika aktif, nilai dari label yang sama akan dijumlahkan jadi satu slice
+    </div>
+  </div>
+)}
+
+
 
           {chartType === 'histogram' && (
             <div>

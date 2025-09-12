@@ -48,6 +48,9 @@ const [isDownloadModalVisible, setIsDownloadModalVisible] = useState(false)
 const [backgroundType, setBackgroundType] = useState('transparent')
 const [customColor, setCustomColor] = useState('#ffffff')
 const [downloading, setDownloading] = useState(false)
+const [pieLabelFormat, setPieLabelFormat] = useState<'percent' | 'degree' | 'value'>('percent')
+const [usePieAggregate, setUsePieAggregate] = useState(true)
+
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -120,36 +123,60 @@ const [downloading, setDownloading] = useState(false)
   }, [selectedVis])
 
   // Enhanced data processing for grouping support (same as Visualize)
-  const chartData = useMemo(() => {
-    if (!chartConfig || !chartConfig.data || chartConfig.data.length === 0) return []
-    
-    const data = chartConfig.data
-    const labelKey = chartConfig.labelKey
-    const valueKey = chartConfig.valueKey
-    const groupKey = chartConfig.groupKey
-    const useGrouping = chartConfig.useGrouping
+useEffect(() => {
+  if (!chartConfig) return
 
-    if (useGrouping && groupKey && labelKey && valueKey && data.some((item: { [x: string]: undefined }) => item[groupKey] !== undefined)) {
-      const groupedData = data.reduce((acc: any, item: any) => {
-        const labelValue = item[labelKey]
-        const groupValue = item[groupKey]
-        const value = Number(item[valueKey]) || 0
-        
-        if (!acc[labelValue]) {
-          acc[labelValue] = { name: labelValue }
-        }
-        acc[labelValue][groupValue] = value
-        return acc
-      }, {})
+  if (chartConfig.pieLabelFormat) setPieLabelFormat(chartConfig.pieLabelFormat)
+  if (chartConfig.usePieAggregate !== undefined) setUsePieAggregate(chartConfig.usePieAggregate)
+}, [chartConfig])
+
+const chartData = useMemo(() => {
+  if (!chartConfig || !chartConfig.data || chartConfig.data.length === 0) return []
+  
+  const data = chartConfig.data
+  const labelKey = chartConfig.labelKey
+  const valueKey = chartConfig.valueKey
+  const groupKey = chartConfig.groupKey
+  const useGrouping = chartConfig.useGrouping
+
+  // ✅ khusus pie chart → agregasi berdasarkan label
+  if (selectedVis?.chart_type === "pie" && labelKey && valueKey) {
+    const aggregated = data.reduce((acc: any, item: any) => {
+      const label = item[labelKey] ?? "Unknown"
+      const value = Number(item[valueKey]) || 0
+      if (!acc[label]) {
+        acc[label] = { name: label, value: 0 }
+      }
+      acc[label].value += value
+      return acc
+    }, {})
+    return Object.values(aggregated)
+  }
+
+  // ✅ untuk chart grouping (bar/line/area/composed)
+  if (useGrouping && groupKey && labelKey && valueKey && data.some((item: any) => item[groupKey] !== undefined)) {
+    const groupedData = data.reduce((acc: any, item: any) => {
+      const labelValue = item[labelKey]
+      const groupValue = item[groupKey]
+      const value = Number(item[valueKey]) || 0
       
-      return Object.values(groupedData)
-    }
+      if (!acc[labelValue]) {
+        acc[labelValue] = { name: labelValue }
+      }
+      acc[labelValue][groupValue] = value
+      return acc
+    }, {})
     
-    return data.map((item: any, index: number) => ({
-      name: item[labelKey] ?? `Row ${index + 1}`,
-      value: Number(item[valueKey]) || 0
-    }))
-  }, [chartConfig])
+    return Object.values(groupedData)
+  }
+
+  // ✅ default (chart lain biasa)
+  return data.map((item: any, index: number) => ({
+    name: item[labelKey] ?? `Row ${index + 1}`,
+    value: Number(item[valueKey]) || 0
+  }))
+}, [chartConfig, selectedVis])
+
 
   const seriesKeys = useMemo(() => {
     if (!chartData || chartData.length === 0) return []
@@ -562,29 +589,45 @@ const yLabel = chartConfig?.yAxisLabel || chartConfig?.valueKey || ''
         return (
           <Treemap data={chartData} dataKey="value" stroke="#fff" fill={chartColors[0]} />
         )
-      case 'pie':
-        return (
-          <PieChart>
-            <Pie 
-              data={chartData} 
-              dataKey="value" 
-              nameKey="name" 
-              cx="50%"
-              cy="50%"
-              outerRadius={120} 
-              label={(entry) => `${entry.name}: ${entry.value}`}
-            >
-              {chartData.map((entry: any, index: number) => (
-                <Cell 
-                  key={`cell-${index}`} 
-                  fill={chartColors[index % chartColors.length]} 
-                />
-              ))}
-            </Pie>
-            <Tooltip />
-            <Legend />
-          </PieChart>
-        )
+case 'pie':
+  const pieData = usePieAggregate
+    ? chartData.reduce((acc: any, item: any) => {
+        const label = item.name ?? 'Unknown'
+        const value = Number(item.value) || 0
+        const exist = acc.find((x: any) => x.name === label)
+        if (exist) {
+          exist.value += value
+        } else {
+          acc.push({ name: label, value })
+        }
+        return acc
+      }, [])
+    : chartData
+
+  return (
+    <PieChart>
+      <Pie 
+        data={pieData} 
+        dataKey="value" 
+        nameKey="name" 
+        cx="50%"
+        cy="50%"
+        outerRadius={120} 
+        label={({ name, value, percent }) => {
+          if (pieLabelFormat === 'percent') return `${name}: ${value} (${((percent ?? 0) * 100).toFixed(1)}%)`
+          if (pieLabelFormat === 'degree') return `${name}: ${value} (${((percent ?? 0) * 360).toFixed(1)}°)`
+          return `${name}: ${value}`
+        }}
+      >
+        {pieData.map((entry: any, index: number) => (
+          <Cell key={`cell-${index}`} fill={chartColors[index % chartColors.length]} />
+        ))}
+      </Pie>
+      <Tooltip />
+      <Legend />
+    </PieChart>
+  )
+
         
       case 'horizontalBar':
         return (
