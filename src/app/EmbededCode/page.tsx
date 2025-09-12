@@ -9,6 +9,7 @@ import { motion } from 'framer-motion'
 import StepProgres from '@/components/StepProgres'
 import { useRouter } from "next/navigation"
 import * as htmlToImage from 'html-to-image'
+import { Modal, Radio } from 'antd'
 
 import {
   BarChart, Bar,
@@ -43,6 +44,10 @@ const [userPrompt, setUserPrompt] = useState("")
 const [chatHistory, setChatHistory] = useState<{ role: "user" | "ai"; content: string }[]>([])
 const [summaryCache, setSummaryCache] = useState<{ [key: string]: string }>({})
 
+const [isDownloadModalVisible, setIsDownloadModalVisible] = useState(false)
+const [backgroundType, setBackgroundType] = useState('transparent')
+const [customColor, setCustomColor] = useState('#ffffff')
+const [downloading, setDownloading] = useState(false)
 
   useEffect(() => {
     const token = localStorage.getItem('token')
@@ -236,17 +241,45 @@ useEffect(() => {
 
   if (!user) return null
 
-  const handleDownloadPNG = () => {
-    if (!chartRef.current) return
-    htmlToImage.toPng(chartRef.current, { cacheBust: true })
-      .then((dataUrl) => {
-        const link = document.createElement('a')
-        link.href = dataUrl
-        link.download = `${chartConfig?.title || 'visualization'}.png`
-        link.click()
-      })
-      .catch((err) => console.error('Gagal download chart:', err))
+const handleDownloadWithOptions = async () => {
+  if (!chartRef.current) return
+  
+  setDownloading(true)
+  
+  let backgroundColor = 'transparent'
+  
+  if (backgroundType === 'white') {
+    backgroundColor = '#ffffff'
+  } else if (backgroundType === 'custom') {
+    backgroundColor = customColor
   }
+
+  try {
+    // 🔥 SOLUSI SIMPEL: Tunggu 1 detik biar label muncul dulu
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
+    const dataUrl = await htmlToImage.toPng(chartRef.current, { 
+      cacheBust: false, // Matikan cache bust
+      backgroundColor: backgroundColor,
+      pixelRatio: 2,
+      quality: 1,
+      style: {
+        backgroundColor: backgroundColor
+      },
+    })
+    
+    const link = document.createElement('a')
+    link.href = dataUrl
+    link.download = `${chartConfig?.title || 'visualization'}.png`
+    link.click()
+    
+    setIsDownloadModalVisible(false)
+  } catch (err) {
+    console.error('Gagal download chart:', err)
+  } finally {
+    setDownloading(false)
+  }
+}
 
 
 
@@ -298,7 +331,6 @@ const yLabel = chartConfig?.yAxisLabel || chartConfig?.valueKey || ''
               label={{ value: yLabel, angle: -90, position: 'insideLeft', offset: 10 }}
             />
             <Tooltip />
-            <Legend />
             {seriesKeys.map((key, index) => (
               <Bar 
                 key={key}
@@ -438,7 +470,6 @@ const yLabel = chartConfig?.yAxisLabel || chartConfig?.valueKey || ''
               label={{ value: yLabel, angle: -90, position: 'insideLeft', offset: 10 }}
             />
             <Tooltip />
-            <Legend />
             <Bar dataKey="value" fill={chartColors[0]} radius={[10, 10, 0, 0]}>
               <LabelList dataKey="value" position="top" />
             </Bar>
@@ -700,7 +731,11 @@ const histogramData = chartData
       </div>
 
       <div className="mx-4 sm:mx-10 mt-6 flex justify-end">
-        <Button type="primary" onClick={handleDownloadPNG}>
+        <Button 
+          type="primary" 
+          onClick={() => setIsDownloadModalVisible(true)}
+          size="large"
+        >
           Download Hasil Visualisasi
         </Button>
       </div>
@@ -708,6 +743,81 @@ const histogramData = chartData
       <div className="mx-4 sm:mx-10 mt-10">
         <NextBack nextLink="" backLink="/Visualize" />
       </div>
+
+      <Modal
+  title="Pilihan Download"
+  open={isDownloadModalVisible}
+  onOk={handleDownloadWithOptions}
+  onCancel={() => setIsDownloadModalVisible(false)}
+  confirmLoading={downloading}
+  okText="Download PNG"
+  cancelText="Batal"
+  width={400}
+>
+  <div className="space-y-4">
+    <Title level={5}>Background Color:</Title>
+    
+    <Radio.Group 
+      value={backgroundType} 
+      onChange={(e) => setBackgroundType(e.target.value)}
+      className="w-full"
+    >
+      <div className="space-y-3">
+        <div className="flex items-center">
+          <Radio value="transparent">
+            <span className="ml-2">Transparan</span>
+          </Radio>
+        </div>
+        
+        <div className="flex items-center">
+          <Radio value="white">
+            <span className="ml-2">Putih</span>
+          </Radio>
+        </div>
+        
+        <div className="flex items-center">
+          <Radio value="custom">
+            <span className="ml-2">Custom Color</span>
+          </Radio>
+        </div>
+      </div>
+    </Radio.Group>
+
+    {backgroundType === 'custom' && (
+      <div className="mt-4 p-4 border rounded-lg bg-gray-50">
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-medium">Pilih Warna:</span>
+          <input
+            type="color"
+            value={customColor}
+            onChange={(e) => setCustomColor(e.target.value)}
+            className="w-12 h-8 rounded border cursor-pointer"
+          />
+          <span className="text-sm text-gray-600">{customColor}</span>
+        </div>
+      </div>
+    )}
+
+    <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+      <div className="text-sm text-blue-700">
+        <strong>Preview:</strong>
+        <div 
+          className="mt-2 w-full h-8 border-2 border-dashed border-blue-300 rounded flex items-center justify-center text-xs"
+          style={{ 
+            backgroundColor: backgroundType === 'transparent' ? 'transparent' : 
+                           backgroundType === 'white' ? '#ffffff' : customColor,
+            backgroundImage: backgroundType === 'transparent' ? 
+              'linear-gradient(45deg, #ccc 25%, transparent 25%), linear-gradient(-45deg, #ccc 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #ccc 75%), linear-gradient(-45deg, transparent 75%, #ccc 75%)' : 'none',
+            backgroundSize: backgroundType === 'transparent' ? '8px 8px' : 'auto',
+            backgroundPosition: backgroundType === 'transparent' ? '0 0, 0 4px, 4px -4px, -4px 0px' : 'auto'
+          }}
+        >
+          {backgroundType === 'transparent' ? 'Transparan' : 'Background Color'}
+        </div>
+      </div>
+    </div>
+  </div>
+</Modal>
     </>
   )
 }

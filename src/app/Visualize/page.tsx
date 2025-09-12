@@ -206,7 +206,9 @@ const renderChart = () => {
             <Tooltip />
             <Legend />
             {groupCategories.map((cat, i) => (
-              <Bar key={cat} dataKey={cat} fill={chartColors[i % chartColors.length]} />
+              <Bar key={cat} dataKey={cat} fill={chartColors[i % chartColors.length]}>
+                <LabelList dataKey={cat} position="top" />
+              </Bar>
             ))}
           </BarChart>
         )
@@ -219,7 +221,9 @@ const renderChart = () => {
             <Tooltip />
             <Legend />
             {groupCategories.map((cat, i) => (
-              <Bar key={cat} dataKey={cat} fill={chartColors[i % chartColors.length]} />
+              <Bar key={cat} dataKey={cat} fill={chartColors[i % chartColors.length]}>
+                <LabelList dataKey={cat} position="right" />
+              </Bar>
             ))}
           </BarChart>
         )
@@ -232,7 +236,9 @@ const renderChart = () => {
             <Tooltip />
             <Legend />
             {groupCategories.map((cat, i) => (
-              <Line key={cat} type="monotone" dataKey={cat} stroke={chartColors[i % chartColors.length]} strokeWidth={3} dot={{ r: 5 }} />
+              <Line key={cat} type="monotone" dataKey={cat} stroke={chartColors[i % chartColors.length]} strokeWidth={3} dot={{ r: 5 }}>
+                <LabelList dataKey={cat} position="top" />
+              </Line>
             ))}
           </LineChart>
         )
@@ -252,7 +258,9 @@ const renderChart = () => {
             <Tooltip />
             <Legend />
             {groupCategories.map((cat, i) => (
-              <Area key={cat} type="monotone" dataKey={cat} stackId="1" stroke={chartColors[i % chartColors.length]} fill={`url(#color${cat})`} />
+              <Area key={cat} type="monotone" dataKey={cat} stackId="1" stroke={chartColors[i % chartColors.length]} fill={`url(#color${cat})`}>
+                <LabelList dataKey={cat} position="top" />
+              </Area>
             ))}
           </AreaChart>
         )
@@ -264,7 +272,11 @@ const renderChart = () => {
             <YAxis {...yAxisProps} />
             <Tooltip />
             <Legend />
-            {groupCategories.map((cat, i) => <Bar key={`bar-${cat}`} dataKey={cat} fill={chartColors[i % chartColors.length]} />)}
+            {groupCategories.map((cat, i) => (
+              <Bar key={`bar-${cat}`} dataKey={cat} fill={chartColors[i % chartColors.length]}>
+                <LabelList dataKey={cat} position="top" />
+              </Bar>
+            ))}
             {groupCategories.map((cat, i) => <Line key={`line-${cat}`} type="monotone" dataKey={cat} stroke={chartColors[(i + 2) % chartColors.length]} strokeWidth={2} />)}
           </ComposedChart>
         )
@@ -280,7 +292,6 @@ const renderChart = () => {
             <XAxis {...xAxisProps} />
             <YAxis {...yAxisProps} />
             <Tooltip />
-            <Legend />
             <Bar dataKey="value" fill={chartColors[0]} radius={[10, 10, 0, 0]}>
               <LabelList dataKey="value" position="top" />
             </Bar>
@@ -293,7 +304,6 @@ const renderChart = () => {
             <XAxis type="number" label={{ value: valueKey, position: 'insideBottom', offset: -5 }} />
             <YAxis type="category" dataKey="name" label={{ value: labelKey, angle: -90, position: 'insideLeft', offset: 10 }} />
             <Tooltip />
-            <Legend />
             <Bar dataKey="value" fill={chartColors[0]}>
               <LabelList dataKey="value" position="right" />
             </Bar>
@@ -364,7 +374,7 @@ const renderChart = () => {
               cx="50%"
               cy="50%"
               outerRadius={120}
-              label
+              label={({ name, value, percent }) => `${name}: ${value} (${((percent ?? 0) * 100).toFixed(1)}%)`}
             >
               {transformedData.map((entry, index) => (
                 <Cell
@@ -383,7 +393,9 @@ const renderChart = () => {
             <XAxis dataKey="x" name="Index" label={{ value: labelKey, position: 'insideBottom', offset: -5 }} />
             <YAxis dataKey="y" name={valueKey} label={{ value: valueKey, angle: -90, position: 'insideLeft', offset: 10 }} />
             <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-            <Scatter data={scatterData} fill={chartColors[0]} />
+            <Scatter data={scatterData} fill={chartColors[0]}>
+              <LabelList dataKey="y" position="top" />
+            </Scatter>
           </ScatterChart>
         )
       case 'radar':
@@ -392,7 +404,9 @@ const renderChart = () => {
             <PolarGrid />
             <PolarAngleAxis dataKey="name" />
             <PolarRadiusAxis />
-            <Radar dataKey="value" stroke={chartColors[0]} fill={chartColors[0]} fillOpacity={0.6} />
+            <Radar dataKey="value" stroke={chartColors[0]} fill={chartColors[0]} fillOpacity={0.6}>
+              <LabelList dataKey="value" position="outside" />
+            </Radar>
             <Tooltip />
           </RadarChart>
         )
